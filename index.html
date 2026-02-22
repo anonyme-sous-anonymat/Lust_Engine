@@ -82,7 +82,7 @@
     setTimeout(() => { statusEl.textContent = ''; }, 5000);
   }
 
-  async function search() {
+  function search() {
     const query = document.getElementById('searchInput').value.trim();
     if (!query) {
       alert("Entre un fantasme !");
@@ -90,91 +90,61 @@
     }
 
     let enhanced = query;
+    let applied = [];
+
     Object.entries(prefs).forEach(([tag, w]) => {
-      if (w > 0) enhanced += ` ${tag}`;
+      if (w > 0) {
+        enhanced += ` ${tag}`;
+        applied.push(`+${tag}`);
+      } else if (w < 0) {
+        enhanced += ` -${tag}`;
+        applied.push(`-${tag}`);
+      }
     });
 
-    const proxy = 'https://api.allorigins.win/raw?url=';
+    if (applied.length > 0) {
+      showStatus('Préférences appliquées : ' + applied.join(', '));
+    } else {
+      showStatus('Aucune préférence appliquée – ajoute des tags !');
+    }
+
     const sites = [
-      { name: 'ThisVid', url: `https://thisvid.com/search/?q=${encodeURIComponent(enhanced)}` },
-      { name: 'DarknessPorn', url: `https://darknessporn.com/search/${encodeURIComponent(enhanced)}/` }
+      {
+        name: "ThisVid",
+        url: `https://thisvid.com/search/?q=${encodeURIComponent(enhanced)}`,
+        color: "#FF4081"
+      },
+      {
+        name: "DarknessPorn",
+        url: `https://darknessporn.com/search/${encodeURIComponent(enhanced)}/`,
+        color: "#000000"
+      }
     ];
 
-    showStatus('Recherche via proxy... (peut prendre 5-10s)');
-
-    const allResults = [];
-
-    for (const site of sites) {
-      try {
-        console.log(`Fetch ${site.name}: ${enhanced}`);
-        const res = await fetch(proxy + encodeURIComponent(site.url));
-        if (!res.ok) throw new Error(`${site.name} proxy failed: ${res.status}`);
-        const html = await res.text();
-        console.log(`${site.name} HTML length: ${html.length}`);
-
-        // Parsing amélioré - cible mieux les blocs vidéo (ajusté pour éviter catégories/actrices)
-        const results = [];
-        // Regex plus stricte : cherche divs avec class contenant "video", "thumb", "item" + img + a href
-        const containerRegex = /<div class="[^"]*(video|thumb|item|teaser|block)[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
-        let containerMatch;
-        while ((containerMatch = containerRegex.exec(html)) !== null) {
-          const block = containerMatch[2];
-          const linkMatch = block.match(/<a[^>]*href="([^"]*?)"[^>]*>/i);
-          const thumbMatch = block.match(/<img[^>]*src="([^"]*?)"[^>]*>/i) || block.match(/<img[^>]*data-src="([^"]*?)"[^>]*>/i);
-          const titleMatch = block.match(/alt="([^"]*)"[^>]*>/i) || block.match(/title="([^"]*)"[^>]*>/i) || block.match(/<h[1-6][^>]*>([^<]*?)<\/h[1-6]>/i);
-
-          if (linkMatch && thumbMatch) {
-            let link = linkMatch[1];
-            if (link.startsWith('/')) {
-              link = (site.name === 'ThisVid' ? 'https://thisvid.com' : 'https://darknessporn.com') + link;
-            }
-            const thumb = thumbMatch[1] || 'https://via.placeholder.com/220x150?text=No+Thumb';
-            const title = (titleMatch ? titleMatch[1] : 'Sans titre').trim();
-            results.push({ title, thumb, link });
-          }
-        }
-
-        allResults.push(...results);
-        console.log(`${site.name} résultats extraits: ${results.length}`);
-      } catch (e) {
-        console.error(`Erreur ${site.name}:`, e);
-        showStatus(`Erreur sur ${site.name}: ${e.message}`);
-      }
-    }
-
-    displayResults(allResults);
-  }
-
-  function displayResults(videos) {
     const container = document.getElementById('results');
-    container.innerHTML = '';
+    container.innerHTML = '<h2 style="text-align:center; color:#ff4081; margin-bottom:20px;">Résultats boostés</h2>';
 
-    if (videos.length === 0) {
-      container.innerHTML = '<p style="color:#ff9800; font-size:18px; text-align:center;">Aucun résultat extrait (regex ou contenu JS-loaded). Essaie un mot-clé plus spécifique ou option liens directs.</p>';
-      showStatus('Pas de previews trouvées');
-      return;
-    }
+    let html = '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:30px;">';
 
-    let html = '<h2 style="text-align:center; color:#ff4081; margin-bottom:20px;">Résultats boostés</h2>';
-    html += '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:20px;">';
-
-    videos.forEach(v => {
-      const thumb = v.thumb || 'https://via.placeholder.com/220x150?text=No+Thumb';
-      const title = v.title || 'Sans titre';
-      const link = v.link || '#';
+    sites.forEach(site => {
       html += `
-        <div style="background:#1a1a1a; border-radius:10px; overflow:hidden; box-shadow:0 4px 8px rgba(0,0,0,0.5);">
-          <a href="${link}" target="_blank" style="text-decoration:none; color:inherit; display:block;">
-            <img src="${thumb}" alt="${title}" style="width:100%; height:auto; display:block;" 
-                 onerror="this.src='https://via.placeholder.com/220x150?text=Thumb+Error';">
-            <div style="padding:10px; font-size:14px; line-height:1.4;">${title}</div>
+        <div style="background:#1a1a1a; border-radius:12px; overflow:hidden; width:300px; box-shadow:0 6px 12px rgba(0,0,0,0.6); transition:transform 0.2s;">
+          <a href="${site.url}" target="_blank" style="text-decoration:none; color:white; display:block;">
+            <div style="background:${site.color}; height:120px; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:bold;">
+              ${site.name}
+            </div>
+            <div style="padding:20px;">
+              <h3 style="margin:0 0 10px 0; font-size:18px;">Voir les résultats sur ${site.name}</h3>
+              <p style="margin:0; font-size:14px; opacity:0.8;">Recherche boostée : "${enhanced}"</p>
+            </div>
           </a>
         </div>`;
     });
 
     html += '</div>';
-    container.innerHTML = html;
-    showStatus(`Affiché ${videos.length} previews !`);
+    container.innerHTML += html;
+
+    showStatus(`Ouvre un des liens pour voir les vidéos ciblées !`);
   }
 
   // Init
