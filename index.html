@@ -113,26 +113,26 @@
         console.log(`${site.name} HTML length: ${html.length}`);
 
         // Parsing basique (adapte si besoin)
-        const results = [];
-        const videoRegex = /<a[^>]*href="([^"]*?)"[^>]*>[\s\S]*?<img[^>]*src="([^"]*?)"[^>]*alt="([^"]*)"[^>]*>/gi;
-        let match;
-        while ((match = videoRegex.exec(html)) && results.length < 10) {
-          let link = match[1];
-          if (link.startsWith('/')) {
-            link = (site.name === 'ThisVid' ? 'https://thisvid.com' : 'https://darknessporn.com') + link;
-          }
-          const thumb = match[2];
-          const title = match[3] || 'Sans titre';
-          results.push({ title, thumb, link });
-        }
+        // Parsing amélioré - tente de cibler blocs vidéo
+const results = [];
+const videoContainers = html.matchAll(/<div class="[^"]*(video|thumb|item|block|teaser)[^"]*"[^>]*>([\s\S]*?)<\/div>/gi);
 
-        allResults.push(...results);
-        console.log(`${site.name} résultats extraits: ${results.length}`);
-      } catch (e) {
-        console.error(`Erreur ${site.name}:`, e);
-        showStatus(`Erreur sur ${site.name}: ${e.message}`);
-      }
+for (const containerMatch of videoContainers) {
+  const block = containerMatch[2];
+  const linkMatch = block.match(/<a[^>]*href="([^"]*?)"[^>]*>/i);
+  const thumbMatch = block.match(/<img[^>]*src="([^"]*?)"[^>]*alt="([^"]*)"[^>]*>/i) || block.match(/<img[^>]*data-src="([^"]*?)"[^>]*>/i);
+  const titleMatch = block.match(/alt="([^"]*)"[^>]*>/i) || block.match(/<[^>]*>([^<]*?)<\/[^>]*>/i); // fallback title
+
+  if (linkMatch && thumbMatch) {
+    let link = linkMatch[1];
+    if (link.startsWith('/')) {
+      link = (site.name === 'ThisVid' ? 'https://thisvid.com' : 'https://darknessporn.com') + link;
     }
+    const thumb = thumbMatch[1] || 'placeholder';
+    const title = (thumbMatch[2] || titleMatch?.[1] || 'Sans titre').trim();
+    results.push({ title, thumb, link });
+  }
+}
 
     displayResults(allResults);
   }
