@@ -41,115 +41,125 @@
   </footer>
 
   <script>
-    const STORAGE_KEY = 'lustEnginePrefs';
-    let prefs = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+  const STORAGE_KEY = 'lustEnginePrefs';
+  let prefs = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
-    function savePrefs() { localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); updateList(); }
-    function updateList() {
-      document.getElementById('tagList').innerHTML = Object.entries(prefs).map(([tag, w]) => `<li>${tag}: ${w}</li>`).join('');
-    }
-
-    function addTag() {
-      const val = document.getElementById('tagInput').value.trim().toLowerCase();
-      if (!val) return;
-      const match = val.match(/^(.+?)\s*([+-]?\d*\.?\d*)$/);
-      if (match) {
-        prefs[match[1].trim()] = parseFloat(match[2]) || 1;
-        savePrefs();
-        document.getElementById('tagInput').value = '';
-        document.getElementById('status').textContent = 'Tag ajouté';
-      }
-    }
-
-    function resetPrefs() {
-      if (confirm('Reset ?')) {
-        prefs = {}; localStorage.removeItem(STORAGE_KEY); updateList();
-        document.getElementById('status').textContent = 'Reset OK';
-      }
-    }
-
-    async function search() {
-  let query = document.getElementById('searchInput').value.trim();
-  if (!query) return alert("Entre un fantasme !");
-
-  let enhanced = query;
-  Object.entries(prefs).forEach(([tag, w]) => { if (w > 0) enhanced += ` ${tag}`; });
-
-  const workerUrl = 'https://lust-engine-proxy.anonymesousanonymat.workers.dev/'; // CHANGE ÇA avec ton Worker URL
-
-  showStatus('Recherche en cours...');
-
-  try {
-    // Fetch pour ThisVid
-    const resThis = await fetch(`${workerUrl}?q=${encodeURIComponent(enhanced)}&site=thisvid`);
-    const dataThis = await resThis.json();
-
-    // Fetch pour DarknessPorn
-    const resDark = await fetch(`${workerUrl}?q=${encodeURIComponent(enhanced)}&site=darknessporn`);
-    const dataDark = await resDark.json();
-    // ... après await resDark ...
-
-const combinedResults = [
-  ...(dataThis.results || []),
-  ...(dataDark.results || [])
-];
-
-// Optionnel : petit filtre ou sort basique si tu veux
-displayResults(combinedResults);
-
-    // Affiche grid
-    displayResults([...(dataThis.results || []), ...(dataDark.results || [])]);
-
-  } catch (e) {
-    showStatus('Erreur proxy : ' + e.message);
-  }
-}
-
-function displayResults(videos) {
-  const container = document.getElementById('results');
-  if (!container) {
-    console.error('Div #results introuvable');
-    return;
-  }
-
-  // Vide les anciens résultats pour éviter l'accumulation
-  container.innerHTML = '';
-
-  if (videos.length === 0) {
-    container.innerHTML = '<p style="color:#ff9800; font-size:18px;">Aucun résultat trouvé. Essaie d\'autres tags !</p>';
-    showStatus('Pas de vidéos extraites');
-    return;
-  }
-
-  let html = '<h2 style="text-align:center; color:#ff4081; margin-bottom:20px;">Résultats boostés</h2>';
-  html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px;">';
-
-  videos.forEach(v => {
-    // Sécurité : fallback si thumb ou title manquant
-    const thumb = v.thumb || 'https://via.placeholder.com/220x150?text=No+Thumb';
-    const title = v.title || 'Vidéo sans titre';
-    const link = v.link || '#';
-
-    html += `
-      <div style="background:#1a1a1a; border-radius:10px; overflow:hidden; box-shadow:0 4px 8px rgba(0,0,0,0.5);">
-        <a href="${link}" target="_blank" style="text-decoration:none; color:inherit; display:block;">
-          <img src="${thumb}" alt="${title}" style="width:100%; height:auto; display:block;" 
-               onerror="this.src='https://via.placeholder.com/220x150?text=Thumb+Error';">
-          <div style="padding:10px; font-size:14px; line-height:1.4;">
-            ${title}
-          </div>
-        </a>
-      </div>`;
-  });
-
-  html += '</div>';
-  container.innerHTML = html;
-
-  showStatus(`Affichage de ${videos.length} vidéos !`);
-}
-
+  function savePrefs() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
     updateList();
-  </script>
+  }
+
+  function updateList() {
+    document.getElementById('tagList').innerHTML = Object.entries(prefs).map(([tag, w]) => `<li>${tag}: ${w}</li>`).join('');
+  }
+
+  function addTag() {
+    const val = document.getElementById('tagInput').value.trim().toLowerCase();
+    if (!val) return;
+    const match = val.match(/^(.+?)\s*([+-]?\d*\.?\d*)$/);
+    if (match) {
+      prefs[match[1].trim()] = parseFloat(match[2]) || 1;
+      savePrefs();
+      document.getElementById('tagInput').value = '';
+      showStatus('Tag ajouté !');
+    } else {
+      showStatus('Format invalide (ex: milf +3)');
+    }
+  }
+
+  function resetPrefs() {
+    if (confirm('Reset toutes les préférences ?')) {
+      prefs = {};
+      localStorage.removeItem(STORAGE_KEY);
+      updateList();
+      showStatus('Préférences reset !');
+    }
+  }
+
+  function showStatus(msg) {
+    const statusEl = document.getElementById('status');
+    statusEl.textContent = msg;
+    // Auto-clear après 5s
+    setTimeout(() => { statusEl.textContent = ''; }, 5000);
+  }
+
+  async function search() {
+    const query = document.getElementById('searchInput').value.trim();
+    if (!query) {
+      alert("Entre un fantasme !");
+      return;
+    }
+
+    let enhanced = query;
+    Object.entries(prefs).forEach(([tag, w]) => {
+      if (w > 0) enhanced += ` ${tag}`;
+    });
+
+    const workerUrl = 'https://lust-engine-proxy.anonymesousanonymat.workers.dev/'; // Vérifie que c'est exact !
+
+    showStatus('Recherche en cours sur ThisVid & DarknessPorn...');
+
+    try {
+      console.log('Envoi requête ThisVid:', enhanced);
+      const resThis = await fetch(`${workerUrl}?q=${encodeURIComponent(enhanced)}&site=thisvid`);
+      if (!resThis.ok) throw new Error(`ThisVid fetch failed: ${resThis.status}`);
+      const dataThis = await resThis.json();
+      console.log('Réponse ThisVid:', dataThis);
+
+      console.log('Envoi requête DarknessPorn:', enhanced);
+      const resDark = await fetch(`${workerUrl}?q=${encodeURIComponent(enhanced)}&site=darknessporn`);
+      if (!resDark.ok) throw new Error(`DarknessPorn fetch failed: ${resDark.status}`);
+      const dataDark = await resDark.json();
+      console.log('Réponse DarknessPorn:', dataDark);
+
+      const combined = [
+        ...(dataThis.results || []),
+        ...(dataDark.results || [])
+      ];
+
+      displayResults(combined);
+
+    } catch (e) {
+      console.error('Erreur complète dans search():', e);
+      showStatus('Erreur : ' + e.message + ' (vérifie console F12)');
+    }
+  }
+
+  function displayResults(videos) {
+    const container = document.getElementById('results');
+    container.innerHTML = '';
+
+    if (videos.length === 0) {
+      container.innerHTML = '<p style="color:#ff9800; font-size:18px; text-align:center;">Aucun résultat extrait. Le parsing Worker peut être à ajuster ou sites vides.</p>';
+      showStatus('Pas de vidéos trouvées');
+      return;
+    }
+
+    let html = '<h2 style="text-align:center; color:#ff4081; margin-bottom:20px;">Résultats boostés</h2>';
+    html += '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:20px;">';
+
+    videos.forEach(v => {
+      const thumb = v.thumb || 'https://via.placeholder.com/220x150?text=No+Thumb';
+      const title = v.title || 'Sans titre';
+      const link = v.link || '#';
+      html += `
+        <div style="background:#1a1a1a; border-radius:10px; overflow:hidden; box-shadow:0 4px 8px rgba(0,0,0,0.5);">
+          <a href="${link}" target="_blank" style="text-decoration:none; color:inherit; display:block;">
+            <img src="${thumb}" alt="${title}" style="width:100%; height:auto; display:block;" 
+                 onerror="this.src='https://via.placeholder.com/220x150?text=Thumb+Error';">
+            <div style="padding:10px; font-size:14px; line-height:1.4;">${title}</div>
+          </a>
+        </div>`;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+    showStatus(`Affiché ${videos.length} vidéos !`);
+  }
+
+  // Init
+  updateList();
+</script>
 
 </body>
 </html>
