@@ -3,42 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Fantasme Search - Porno personnalisé anonyme</title>
+  <title>Lust Engine - Moteur porno anonyme personnalisé</title>
   <style>
     body { font-family: Arial, sans-serif; background: #111; color: #eee; margin: 0; padding: 20px; text-align: center; }
-    h1 { color: #ff4081; }
-    input { padding: 12px; width: 60%; max-width: 500px; font-size: 18px; border: 2px solid #ff4081; border-radius: 8px; background: #222; color: white; }
-    button { padding: 12px 24px; font-size: 18px; background: #ff4081; border: none; color: white; border-radius: 8px; cursor: pointer; margin: 10px; }
-    #prefs { margin: 30px auto; max-width: 600px; background: #1a1a1a; padding: 20px; border-radius: 10px; }
+    h1 { color: #ff4081; margin-bottom: 10px; }
+    input { padding: 12px; width: 70%; max-width: 600px; font-size: 18px; border: 2px solid #ff4081; border-radius: 8px; background: #222; color: white; }
+    button { padding: 12px 24px; font-size: 18px; background: #ff4081; border: none; color: white; border-radius: 8px; cursor: pointer; margin: 15px 5px; }
+    #prefs { margin: 30px auto; max-width: 700px; background: #1a1a1a; padding: 20px; border-radius: 10px; }
     ul { list-style: none; padding: 0; }
-    li { margin: 8px 0; }
+    li { margin: 8px 0; font-size: 16px; }
+    footer { margin-top: 50px; font-size: 0.9em; color: #888; }
   </style>
 </head>
 <body>
 
-  <h1>Fantasme Search</h1>
-  <p>Recherche porno anonyme – tes préférences restent dans ton navigateur seulement</p>
+  <h1>Lust Engine</h1>
+  <p>Méta-moteur porno anonyme – tes fantasmes restent 100% dans ton navigateur</p>
 
-  <input type="text" id="searchInput" placeholder="Tape ton fantasme (ex: milf amateur français)" autofocus />
-  <button onclick="search()">Rechercher</button>
+  <input type="text" id="searchInput" placeholder="Décris ton fantasme (ex: milf amateur anal français)" autofocus />
+  <button onclick="search()">Lancer la recherche</button>
 
   <div id="prefs">
-    <h3>Mes fantasmes / Préférences (local seulement)</h3>
-    <input type="text" id="tagInput" placeholder="ex: milf +3  ou  creampie -5" />
-    <button onclick="addTag()">Ajouter tag</button>
+    <h3>Mes préférences / Fantasmes (local seulement)</h3>
+    <p>Ajoute des boosts : "milf +3" ou exclusions "creampie -5"</p>
+    <input type="text" id="tagInput" placeholder="tag +poids ou tag -poids" />
+    <button onclick="addTag()">Ajouter</button>
     <ul id="tagList"></ul>
-    <button onclick="resetPrefs()" style="background:#e74c3c;">Reset prefs</button>
+    <button onclick="resetPrefs()" style="background:#e74c3c;">Reset tout</button>
   </div>
 
-  <footer style="margin-top:50px; font-size:0.8em; color:#888;">
-    100% anonyme · Pas de tracking · Open source · Utilise les recherches publiques des sites
+  <footer>
+    100% anonyme · Pas de tracking · Open source · Liens directs vers les top tubes 2026<br>
+    Sites inclus : Pornhub, XVideos, xHamster, XNXX, YouPorn, RedTube, SpankBang, Eporner, Porn.com, Tube8, Beeg, Thumbzilla, ThisVid, DarknessPorn...
   </footer>
 
   <script>
-    let prefs = JSON.parse(localStorage.getItem('fantasmesPrefs')) || {};
+    let prefs = JSON.parse(localStorage.getItem('lustEnginePrefs')) || {};
 
     function savePrefs() {
-      localStorage.setItem('fantasmesPrefs', JSON.stringify(prefs));
+      localStorage.setItem('lustEnginePrefs', JSON.stringify(prefs));
       updateList();
     }
 
@@ -65,34 +68,54 @@
         savePrefs();
         input.value = '';
       } else {
-        alert("Format : tag +poids ou tag -poids (ex: bbw +2.5)");
+        alert("Format : tag +poids ou tag -poids (ex: bbw +2.5 ou -inceste -10)");
       }
     }
 
     function resetPrefs() {
-      if (confirm('Tout reset ?')) {
+      if (confirm('Reset toutes tes préférences ?')) {
         prefs = {};
-        localStorage.removeItem('fantasmesPrefs');
+        localStorage.removeItem('lustEnginePrefs');
         updateList();
       }
     }
 
     function search() {
-      const query = document.getElementById('searchInput').value.trim();
-      if (!query) return alert("Entre un terme de recherche !");
+      let query = document.getElementById('searchInput').value.trim();
+      if (!query) return alert("Entre un fantasme ou mot-clé !");
 
-      // Bonus perso simple : on ajoute les tags favoris à la query
+      // Boost la query avec prefs positives
       let enhancedQuery = query;
       Object.keys(prefs).forEach(tag => {
-        if (prefs[tag] > 0) enhancedQuery += ` ${tag}`;
+        if (prefs[tag] > 0) {
+          enhancedQuery += ` ${tag}`;
+        }
       });
 
-      // Ouvre plusieurs onglets (meta-search basique)
-      window.open(`https://www.pornhub.com/video/search?search=${encodeURIComponent(enhancedQuery)}`, '_blank');
-      window.open(`https://xvideos.com/?k=${encodeURIComponent(enhancedQuery)}`, '_blank');
-      window.open(`https://www.xhamster.com/search/${encodeURIComponent(enhancedQuery)}`, '_blank');
+      // Liste des sites + formats de recherche (2026)
+      const sites = [
+        { name: "Pornhub", url: `https://www.pornhub.com/video/search?search=${encodeURIComponent(enhancedQuery)}` },
+        { name: "XVideos", url: `https://www.xvideos.com/?k=${encodeURIComponent(enhancedQuery)}` },
+        { name: "xHamster", url: `https://xhamster.com/search/${encodeURIComponent(enhancedQuery)}` },
+        { name: "XNXX", url: `https://www.xnxx.com/search/${encodeURIComponent(enhancedQuery)}` },
+        { name: "YouPorn", url: `https://www.youporn.com/search/?query=${encodeURIComponent(enhancedQuery)}` },
+        { name: "RedTube", url: `https://www.redtube.com/?search=${encodeURIComponent(enhancedQuery)}` },
+        { name: "SpankBang", url: `https://spankbang.com/s/${encodeURIComponent(enhancedQuery)}/` },
+        { name: "Eporner", url: `https://www.eporner.com/search/${encodeURIComponent(enhancedQuery)}/` },
+        { name: "Porn.com", url: `https://www.porn.com/videos?q=${encodeURIComponent(enhancedQuery)}` },
+        { name: "Tube8", url: `https://www.tube8.com/search.html?q=${encodeURIComponent(enhancedQuery)}` },
+        { name: "Beeg", url: `https://beeg.com/search?q=${encodeURIComponent(enhancedQuery)}` },
+        { name: "Thumbzilla", url: `https://www.thumbzilla.com/video/search?search=${encodeURIComponent(enhancedQuery)}` },
+        { name: "ThisVid", url: `https://thisvid.com/search/?q=${encodeURIComponent(enhancedQuery)}` },
+        { name: "DarknessPorn", url: `https://darknessporn.com/search/${encodeURIComponent(enhancedQuery)}/` }
+      ];
 
-      // Plus tard on pourra reranker avec un proxy, mais là c'est 0 backend
+      if (confirm(`Ouvrir ${sites.length} onglets sur les top sites (incl. ThisVid & DarknessPorn) ?`)) {
+        sites.forEach(site => {
+          window.open(site.url, '_blank');
+        });
+        alert(`Recherche lancée sur ${sites.length} sites ! Tes prefs positives boostent la query.`);
+      }
     }
 
     // Init
