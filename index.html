@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fantasme Search - Porno personnalisé anonyme</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #111; color: #eee; margin: 0; padding: 20px; text-align: center; }
+    h1 { color: #ff4081; }
+    input { padding: 12px; width: 60%; max-width: 500px; font-size: 18px; border: 2px solid #ff4081; border-radius: 8px; background: #222; color: white; }
+    button { padding: 12px 24px; font-size: 18px; background: #ff4081; border: none; color: white; border-radius: 8px; cursor: pointer; margin: 10px; }
+    #prefs { margin: 30px auto; max-width: 600px; background: #1a1a1a; padding: 20px; border-radius: 10px; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 8px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>Fantasme Search</h1>
+  <p>Recherche porno anonyme – tes préférences restent dans ton navigateur seulement</p>
+
+  <input type="text" id="searchInput" placeholder="Tape ton fantasme (ex: milf amateur français)" autofocus />
+  <button onclick="search()">Rechercher</button>
+
+  <div id="prefs">
+    <h3>Mes fantasmes / Préférences (local seulement)</h3>
+    <input type="text" id="tagInput" placeholder="ex: milf +3  ou  creampie -5" />
+    <button onclick="addTag()">Ajouter tag</button>
+    <ul id="tagList"></ul>
+    <button onclick="resetPrefs()" style="background:#e74c3c;">Reset prefs</button>
+  </div>
+
+  <footer style="margin-top:50px; font-size:0.8em; color:#888;">
+    100% anonyme · Pas de tracking · Open source · Utilise les recherches publiques des sites
+  </footer>
+
+  <script>
+    let prefs = JSON.parse(localStorage.getItem('fantasmesPrefs')) || {};
+
+    function savePrefs() {
+      localStorage.setItem('fantasmesPrefs', JSON.stringify(prefs));
+      updateList();
+    }
+
+    function updateList() {
+      const list = document.getElementById('tagList');
+      list.innerHTML = '';
+      Object.keys(prefs).forEach(tag => {
+        const li = document.createElement('li');
+        li.textContent = `${tag}: ${prefs[tag]}`;
+        list.appendChild(li);
+      });
+    }
+
+    function addTag() {
+      const input = document.getElementById('tagInput');
+      const val = input.value.trim().toLowerCase();
+      if (!val) return;
+
+      const match = val.match(/^(.+?)\s*([+-]?\d*\.?\d*)$/);
+      if (match) {
+        const tag = match[1].trim();
+        const poids = parseFloat(match[2]) || 1;
+        prefs[tag] = poids;
+        savePrefs();
+        input.value = '';
+      } else {
+        alert("Format : tag +poids ou tag -poids (ex: bbw +2.5)");
+      }
+    }
+
+    function resetPrefs() {
+      if (confirm('Tout reset ?')) {
+        prefs = {};
+        localStorage.removeItem('fantasmesPrefs');
+        updateList();
+      }
+    }
+
+    function search() {
+      const query = document.getElementById('searchInput').value.trim();
+      if (!query) return alert("Entre un terme de recherche !");
+
+      // Bonus perso simple : on ajoute les tags favoris à la query
+      let enhancedQuery = query;
+      Object.keys(prefs).forEach(tag => {
+        if (prefs[tag] > 0) enhancedQuery += ` ${tag}`;
+      });
+
+      // Ouvre plusieurs onglets (meta-search basique)
+      window.open(`https://www.pornhub.com/video/search?search=${encodeURIComponent(enhancedQuery)}`, '_blank');
+      window.open(`https://xvideos.com/?k=${encodeURIComponent(enhancedQuery)}`, '_blank');
+      window.open(`https://www.xhamster.com/search/${encodeURIComponent(enhancedQuery)}`, '_blank');
+
+      // Plus tard on pourra reranker avec un proxy, mais là c'est 0 backend
+    }
+
+    // Init
+    updateList();
+  </script>
+
+</body>
+</html>
