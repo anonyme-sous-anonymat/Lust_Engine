@@ -79,7 +79,6 @@
   function showStatus(msg) {
     const statusEl = document.getElementById('status');
     statusEl.textContent = msg;
-    // Auto-clear après 5s
     setTimeout(() => { statusEl.textContent = ''; }, 5000);
   }
 
@@ -95,34 +94,47 @@
       if (w > 0) enhanced += ` ${tag}`;
     });
 
-    const workerUrl = 'https://lust-engine-proxy.anonymesousanonymat.workers.dev/'; // Vérifie que c'est exact !
+    const proxy = 'https://api.allorigins.win/raw?url=';
+    const sites = [
+      { name: 'ThisVid', url: `https://thisvid.com/search/?q=${encodeURIComponent(enhanced)}` },
+      { name: 'DarknessPorn', url: `https://darknessporn.com/search/${encodeURIComponent(enhanced)}/` }
+    ];
 
-    showStatus('Recherche en cours sur ThisVid & DarknessPorn...');
+    showStatus('Recherche via proxy... (peut prendre 5-10s)');
 
-    try {
-      console.log('Envoi requête ThisVid:', enhanced);
-      const resThis = await fetch(`${workerUrl}?q=${encodeURIComponent(enhanced)}&site=thisvid`);
-      if (!resThis.ok) throw new Error(`ThisVid fetch failed: ${resThis.status}`);
-      const dataThis = await resThis.json();
-      console.log('Réponse ThisVid:', dataThis);
+    const allResults = [];
 
-      console.log('Envoi requête DarknessPorn:', enhanced);
-      const resDark = await fetch(`${workerUrl}?q=${encodeURIComponent(enhanced)}&site=darknessporn`);
-      if (!resDark.ok) throw new Error(`DarknessPorn fetch failed: ${resDark.status}`);
-      const dataDark = await resDark.json();
-      console.log('Réponse DarknessPorn:', dataDark);
+    for (const site of sites) {
+      try {
+        console.log(`Fetch ${site.name}: ${enhanced}`);
+        const res = await fetch(proxy + encodeURIComponent(site.url));
+        if (!res.ok) throw new Error(`${site.name} proxy failed: ${res.status}`);
+        const html = await res.text();
+        console.log(`${site.name} HTML length: ${html.length}`);
 
-      const combined = [
-        ...(dataThis.results || []),
-        ...(dataDark.results || [])
-      ];
+        // Parsing basique (adapte si besoin)
+        const results = [];
+        const videoRegex = /<a[^>]*href="([^"]*?)"[^>]*>[\s\S]*?<img[^>]*src="([^"]*?)"[^>]*alt="([^"]*)"[^>]*>/gi;
+        let match;
+        while ((match = videoRegex.exec(html)) && results.length < 10) {
+          let link = match[1];
+          if (link.startsWith('/')) {
+            link = (site.name === 'ThisVid' ? 'https://thisvid.com' : 'https://darknessporn.com') + link;
+          }
+          const thumb = match[2];
+          const title = match[3] || 'Sans titre';
+          results.push({ title, thumb, link });
+        }
 
-      displayResults(combined);
-
-    } catch (e) {
-      console.error('Erreur complète dans search():', e);
-      showStatus('Erreur : ' + e.message + ' (vérifie console F12)');
+        allResults.push(...results);
+        console.log(`${site.name} résultats extraits: ${results.length}`);
+      } catch (e) {
+        console.error(`Erreur ${site.name}:`, e);
+        showStatus(`Erreur sur ${site.name}: ${e.message}`);
+      }
     }
+
+    displayResults(allResults);
   }
 
   function displayResults(videos) {
@@ -130,8 +142,8 @@
     container.innerHTML = '';
 
     if (videos.length === 0) {
-      container.innerHTML = '<p style="color:#ff9800; font-size:18px; text-align:center;">Aucun résultat extrait. Le parsing Worker peut être à ajuster ou sites vides.</p>';
-      showStatus('Pas de vidéos trouvées');
+      container.innerHTML = '<p style="color:#ff9800; font-size:18px; text-align:center;">Aucun thumbnail extrait (sites peuvent bloquer ou JS-loaded). Essaie option liens directs ?</p>';
+      showStatus('Pas de previews trouvées');
       return;
     }
 
@@ -154,7 +166,7 @@
 
     html += '</div>';
     container.innerHTML = html;
-    showStatus(`Affiché ${videos.length} vidéos !`);
+    showStatus(`Affiché ${videos.length} previews !`);
   }
 
   // Init
