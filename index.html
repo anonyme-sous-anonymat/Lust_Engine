@@ -12,20 +12,29 @@
     #prefs { margin: 30px auto; max-width: 700px; background: #1a1a1a; padding: 20px; border-radius: 10px; }
     ul { list-style: none; padding: 0; }
     li { margin: 8px 0; font-size: 16px; }
+    #status { color: #ffeb3b; margin: 10px; font-weight: bold; }
     footer { margin-top: 50px; font-size: 0.9em; color: #888; }
+    .warning { color: #ff9800; font-weight: bold; }
   </style>
 </head>
 <body>
 
   <h1>Lust Engine</h1>
-  <p>Méta-moteur porno anonyme – tes fantasmes restent 100% dans ton navigateur</p>
+  <p>Méta-moteur porno anonyme – tes fantasmes 100% locaux (navigateur seulement)</p>
+
+  <div class="warning">
+    ⚠️ En France, Pornhub/YouPorn/RedTube sont bloqués (loi age-verif 2025).  
+    Utilise un VPN gratuit (ProtonVPN, Windscribe, Opera GX VPN) → connecte-toi à Allemagne/Pays-Bas/Canada.  
+    Guides : <a href="https://cybernews.com/how-to-use-vpn/how-to-access-pornhub-in-france" target="_blank" style="color:#ffeb3b;">cybernews.com</a> ou <a href="https://protonvpn.com/free-vpn" target="_blank" style="color:#ffeb3b;">ProtonVPN Free</a>
+  </div>
 
   <input type="text" id="searchInput" placeholder="Décris ton fantasme (ex: milf amateur anal français)" autofocus />
   <button onclick="search()">Lancer la recherche</button>
+  <div id="status"></div>
 
   <div id="prefs">
-    <h3>Mes préférences / Fantasmes (local seulement)</h3>
-    <p>Ajoute des boosts : "milf +3" ou exclusions "creampie -5"</p>
+    <h3>Mes préférences / Fantasmes (local)</h3>
+    <p>Boost : "milf +3" | Exclusion : "creampie -5"</p>
     <input type="text" id="tagInput" placeholder="tag +poids ou tag -poids" />
     <button onclick="addTag()">Ajouter</button>
     <ul id="tagList"></ul>
@@ -33,15 +42,22 @@
   </div>
 
   <footer>
-    100% anonyme · Pas de tracking · Open source · Liens directs vers les top tubes 2026<br>
-    Sites inclus : Pornhub, XVideos, xHamster, XNXX, YouPorn, RedTube, SpankBang, Eporner, Porn.com, Tube8, Beeg, Thumbzilla, ThisVid, DarknessPorn...
+    100% anonyme · Pas de tracking · Sites : Pornhub, XVideos, xHamster, ThisVid, DarknessPorn... (multi-onglets pour l'instant)<br>
+    Prochain : affichage thumbnails ici + vrai ranking + proxy anti-geo
   </footer>
 
   <script>
-    let prefs = JSON.parse(localStorage.getItem('lustEnginePrefs')) || {};
+    const STORAGE_KEY = 'lustEnginePrefs';
+    let prefs = {};
+    try {
+      prefs = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    } catch (e) {
+      console.error('Prefs corrompues, reset auto');
+      prefs = {};
+    }
 
     function savePrefs() {
-      localStorage.setItem('lustEnginePrefs', JSON.stringify(prefs));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
       updateList();
     }
 
@@ -67,54 +83,61 @@
         prefs[tag] = poids;
         savePrefs();
         input.value = '';
+        showStatus('Tag ajouté !');
       } else {
-        alert("Format : tag +poids ou tag -poids (ex: bbw +2.5 ou -inceste -10)");
+        alert("Format : tag +poids ou tag -poids (ex: bbw +2.5)");
       }
     }
 
     function resetPrefs() {
       if (confirm('Reset toutes tes préférences ?')) {
         prefs = {};
-        localStorage.removeItem('lustEnginePrefs');
+        localStorage.removeItem(STORAGE_KEY);
         updateList();
+        showStatus('Préférences reset !');
       }
+    }
+
+    function showStatus(msg) {
+      const status = document.getElementById('status');
+      status.textContent = msg;
+      setTimeout(() => { status.textContent = ''; }, 4000);
     }
 
     function search() {
       let query = document.getElementById('searchInput').value.trim();
-      if (!query) return alert("Entre un fantasme ou mot-clé !");
+      if (!query) return alert("Entre un fantasme !");
 
-      // Boost la query avec prefs positives
       let enhancedQuery = query;
+      let applied = [];
+
       Object.keys(prefs).forEach(tag => {
         if (prefs[tag] > 0) {
           enhancedQuery += ` ${tag}`;
+          applied.push(`+${tag}`);
+        } else if (prefs[tag] < 0) {
+          applied.push(`-${tag}`);
         }
       });
 
-      // Liste des sites + formats de recherche (2026)
+      if (applied.length > 0) {
+        showStatus('Boosts appliqués : ' + applied.join(', '));
+      } else {
+        showStatus('Aucun boost actif – ajoute des prefs !');
+      }
+
+      // Liste sites (on garde multi pour l'instant, mais focus Pornhub si geo-block)
       const sites = [
-        { name: "Pornhub", url: `https://www.pornhub.com/video/search?search=${encodeURIComponent(enhancedQuery)}` },
-        { name: "XVideos", url: `https://www.xvideos.com/?k=${encodeURIComponent(enhancedQuery)}` },
-        { name: "xHamster", url: `https://xhamster.com/search/${encodeURIComponent(enhancedQuery)}` },
-        { name: "XNXX", url: `https://www.xnxx.com/search/${encodeURIComponent(enhancedQuery)}` },
-        { name: "YouPorn", url: `https://www.youporn.com/search/?query=${encodeURIComponent(enhancedQuery)}` },
-        { name: "RedTube", url: `https://www.redtube.com/?search=${encodeURIComponent(enhancedQuery)}` },
-        { name: "SpankBang", url: `https://spankbang.com/s/${encodeURIComponent(enhancedQuery)}/` },
-        { name: "Eporner", url: `https://www.eporner.com/search/${encodeURIComponent(enhancedQuery)}/` },
-        { name: "Porn.com", url: `https://www.porn.com/videos?q=${encodeURIComponent(enhancedQuery)}` },
-        { name: "Tube8", url: `https://www.tube8.com/search.html?q=${encodeURIComponent(enhancedQuery)}` },
-        { name: "Beeg", url: `https://beeg.com/search?q=${encodeURIComponent(enhancedQuery)}` },
-        { name: "Thumbzilla", url: `https://www.thumbzilla.com/video/search?search=${encodeURIComponent(enhancedQuery)}` },
-        { name: "ThisVid", url: `https://thisvid.com/search/?q=${encodeURIComponent(enhancedQuery)}` },
-        { name: "DarknessPorn", url: `https://darknessporn.com/search/${encodeURIComponent(enhancedQuery)}/` }
+        { name: "Pornhub (principal)", url: `https://www.pornhub.com/video/search?search=${encodeURIComponent(enhancedQuery)}` },
+        // Ajoute les autres si pop-ups OK, sinon commente
+        // { name: "XVideos", url: `https://www.xvideos.com/?k=${encodeURIComponent(enhancedQuery)}` },
+        // ... etc.
       ];
 
-      if (confirm(`Ouvrir ${sites.length} onglets sur les top sites (incl. ThisVid & DarknessPorn) ?`)) {
+      if (confirm(`Ouvrir recherche boostée (${sites.length} sites) ?`)) {
         sites.forEach(site => {
           window.open(site.url, '_blank');
         });
-        alert(`Recherche lancée sur ${sites.length} sites ! Tes prefs positives boostent la query.`);
       }
     }
 
