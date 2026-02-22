@@ -112,27 +112,35 @@
         const html = await res.text();
         console.log(`${site.name} HTML length: ${html.length}`);
 
-        // Parsing basique (adapte si besoin)
-        // Parsing amélioré - tente de cibler blocs vidéo
-const results = [];
-const videoContainers = html.matchAll(/<div class="[^"]*(video|thumb|item|block|teaser)[^"]*"[^>]*>([\s\S]*?)<\/div>/gi);
+        // Parsing amélioré - cible mieux les blocs vidéo (ajusté pour éviter catégories/actrices)
+        const results = [];
+        // Regex plus stricte : cherche divs avec class contenant "video", "thumb", "item" + img + a href
+        const containerRegex = /<div class="[^"]*(video|thumb|item|teaser|block)[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
+        let containerMatch;
+        while ((containerMatch = containerRegex.exec(html)) !== null) {
+          const block = containerMatch[2];
+          const linkMatch = block.match(/<a[^>]*href="([^"]*?)"[^>]*>/i);
+          const thumbMatch = block.match(/<img[^>]*src="([^"]*?)"[^>]*>/i) || block.match(/<img[^>]*data-src="([^"]*?)"[^>]*>/i);
+          const titleMatch = block.match(/alt="([^"]*)"[^>]*>/i) || block.match(/title="([^"]*)"[^>]*>/i) || block.match(/<h[1-6][^>]*>([^<]*?)<\/h[1-6]>/i);
 
-for (const containerMatch of videoContainers) {
-  const block = containerMatch[2];
-  const linkMatch = block.match(/<a[^>]*href="([^"]*?)"[^>]*>/i);
-  const thumbMatch = block.match(/<img[^>]*src="([^"]*?)"[^>]*alt="([^"]*)"[^>]*>/i) || block.match(/<img[^>]*data-src="([^"]*?)"[^>]*>/i);
-  const titleMatch = block.match(/alt="([^"]*)"[^>]*>/i) || block.match(/<[^>]*>([^<]*?)<\/[^>]*>/i); // fallback title
+          if (linkMatch && thumbMatch) {
+            let link = linkMatch[1];
+            if (link.startsWith('/')) {
+              link = (site.name === 'ThisVid' ? 'https://thisvid.com' : 'https://darknessporn.com') + link;
+            }
+            const thumb = thumbMatch[1] || 'https://via.placeholder.com/220x150?text=No+Thumb';
+            const title = (titleMatch ? titleMatch[1] : 'Sans titre').trim();
+            results.push({ title, thumb, link });
+          }
+        }
 
-  if (linkMatch && thumbMatch) {
-    let link = linkMatch[1];
-    if (link.startsWith('/')) {
-      link = (site.name === 'ThisVid' ? 'https://thisvid.com' : 'https://darknessporn.com') + link;
+        allResults.push(...results);
+        console.log(`${site.name} résultats extraits: ${results.length}`);
+      } catch (e) {
+        console.error(`Erreur ${site.name}:`, e);
+        showStatus(`Erreur sur ${site.name}: ${e.message}`);
+      }
     }
-    const thumb = thumbMatch[1] || 'placeholder';
-    const title = (thumbMatch[2] || titleMatch?.[1] || 'Sans titre').trim();
-    results.push({ title, thumb, link });
-  }
-}
 
     displayResults(allResults);
   }
@@ -142,7 +150,7 @@ for (const containerMatch of videoContainers) {
     container.innerHTML = '';
 
     if (videos.length === 0) {
-      container.innerHTML = '<p style="color:#ff9800; font-size:18px; text-align:center;">Aucun thumbnail extrait (sites peuvent bloquer ou JS-loaded). Essaie option liens directs ?</p>';
+      container.innerHTML = '<p style="color:#ff9800; font-size:18px; text-align:center;">Aucun résultat extrait (regex ou contenu JS-loaded). Essaie un mot-clé plus spécifique ou option liens directs.</p>';
       showStatus('Pas de previews trouvées');
       return;
     }
