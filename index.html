@@ -3,145 +3,86 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Lust Engine - Moteur porno anonyme personnalisé</title>
+  <title>Lust Engine - ThisVid & DarknessPorn</title>
   <style>
     body { font-family: Arial, sans-serif; background: #111; color: #eee; margin: 0; padding: 20px; text-align: center; }
-    h1 { color: #ff4081; margin-bottom: 10px; }
+    h1 { color: #ff4081; }
     input { padding: 12px; width: 70%; max-width: 600px; font-size: 18px; border: 2px solid #ff4081; border-radius: 8px; background: #222; color: white; }
-    button { padding: 12px 24px; font-size: 18px; background: #ff4081; border: none; color: white; border-radius: 8px; cursor: pointer; margin: 15px 5px; }
+    button { padding: 12px 24px; font-size: 18px; background: #ff4081; border: none; color: white; border-radius: 8px; cursor: pointer; margin: 15px; }
     #prefs { margin: 30px auto; max-width: 700px; background: #1a1a1a; padding: 20px; border-radius: 10px; }
     ul { list-style: none; padding: 0; }
-    li { margin: 8px 0; font-size: 16px; }
+    li { margin: 8px 0; }
     #status { color: #ffeb3b; margin: 10px; font-weight: bold; }
     footer { margin-top: 50px; font-size: 0.9em; color: #888; }
-    .warning { color: #ff9800; font-weight: bold; }
   </style>
 </head>
 <body>
 
   <h1>Lust Engine</h1>
-  <p>Méta-moteur porno anonyme – tes fantasmes 100% locaux (navigateur seulement)</p>
+  <p>Recherche anonyme sur ThisVid + DarknessPorn (accessibles sans restriction FR)</p>
 
-  <div class="warning">
-    ⚠️ En France, Pornhub/YouPorn/RedTube sont bloqués (loi age-verif 2025).  
-    Utilise un VPN gratuit (ProtonVPN, Windscribe, Opera GX VPN) → connecte-toi à Allemagne/Pays-Bas/Canada.  
-    Guides : <a href="https://cybernews.com/how-to-use-vpn/how-to-access-pornhub-in-france" target="_blank" style="color:#ffeb3b;">cybernews.com</a> ou <a href="https://protonvpn.com/free-vpn" target="_blank" style="color:#ffeb3b;">ProtonVPN Free</a>
-  </div>
-
-  <input type="text" id="searchInput" placeholder="Décris ton fantasme (ex: milf amateur anal français)" autofocus />
-  <button onclick="search()">Lancer la recherche</button>
+  <input type="text" id="searchInput" placeholder="Ton fantasme (ex: amateur french bdsm)" autofocus />
+  <button onclick="search()">Rechercher</button>
   <div id="status"></div>
 
   <div id="prefs">
-    <h3>Mes préférences / Fantasmes (local)</h3>
-    <p>Boost : "milf +3" | Exclusion : "creampie -5"</p>
-    <input type="text" id="tagInput" placeholder="tag +poids ou tag -poids" />
+    <h3>Préférences (local)</h3>
+    <input type="text" id="tagInput" placeholder="milf +3 ou creampie -5" />
     <button onclick="addTag()">Ajouter</button>
     <ul id="tagList"></ul>
     <button onclick="resetPrefs()" style="background:#e74c3c;">Reset tout</button>
   </div>
 
   <footer>
-    100% anonyme · Pas de tracking · Sites : Pornhub, XVideos, xHamster, ThisVid, DarknessPorn... (multi-onglets pour l'instant)<br>
-    Prochain : affichage thumbnails ici + vrai ranking + proxy anti-geo
+    100% anonyme · Prefs dans navigateur · Sites : ThisVid & DarknessPorn (pas de geo-block FR)
   </footer>
 
   <script>
     const STORAGE_KEY = 'lustEnginePrefs';
-    let prefs = {};
-    try {
-      prefs = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-    } catch (e) {
-      console.error('Prefs corrompues, reset auto');
-      prefs = {};
-    }
+    let prefs = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
-    function savePrefs() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-      updateList();
-    }
-
+    function savePrefs() { localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); updateList(); }
     function updateList() {
-      const list = document.getElementById('tagList');
-      list.innerHTML = '';
-      Object.keys(prefs).forEach(tag => {
-        const li = document.createElement('li');
-        li.textContent = `${tag}: ${prefs[tag]}`;
-        list.appendChild(li);
-      });
+      document.getElementById('tagList').innerHTML = Object.entries(prefs).map(([tag, w]) => `<li>${tag}: ${w}</li>`).join('');
     }
 
     function addTag() {
-      const input = document.getElementById('tagInput');
-      const val = input.value.trim().toLowerCase();
+      const val = document.getElementById('tagInput').value.trim().toLowerCase();
       if (!val) return;
-
       const match = val.match(/^(.+?)\s*([+-]?\d*\.?\d*)$/);
       if (match) {
-        const tag = match[1].trim();
-        const poids = parseFloat(match[2]) || 1;
-        prefs[tag] = poids;
+        prefs[match[1].trim()] = parseFloat(match[2]) || 1;
         savePrefs();
-        input.value = '';
-        showStatus('Tag ajouté !');
-      } else {
-        alert("Format : tag +poids ou tag -poids (ex: bbw +2.5)");
+        document.getElementById('tagInput').value = '';
+        document.getElementById('status').textContent = 'Tag ajouté';
       }
     }
 
     function resetPrefs() {
-      if (confirm('Reset toutes tes préférences ?')) {
-        prefs = {};
-        localStorage.removeItem(STORAGE_KEY);
-        updateList();
-        showStatus('Préférences reset !');
+      if (confirm('Reset ?')) {
+        prefs = {}; localStorage.removeItem(STORAGE_KEY); updateList();
+        document.getElementById('status').textContent = 'Reset OK';
       }
-    }
-
-    function showStatus(msg) {
-      const status = document.getElementById('status');
-      status.textContent = msg;
-      setTimeout(() => { status.textContent = ''; }, 4000);
     }
 
     function search() {
       let query = document.getElementById('searchInput').value.trim();
-      if (!query) return alert("Entre un fantasme !");
+      if (!query) return alert("Entre quelque chose !");
 
-      let enhancedQuery = query;
-      let applied = [];
+      let enhanced = query;
+      Object.entries(prefs).forEach(([tag, w]) => { if (w > 0) enhanced += ` ${tag}`; });
 
-      Object.keys(prefs).forEach(tag => {
-        if (prefs[tag] > 0) {
-          enhancedQuery += ` ${tag}`;
-          applied.push(`+${tag}`);
-        } else if (prefs[tag] < 0) {
-          applied.push(`-${tag}`);
-        }
-      });
-
-      if (applied.length > 0) {
-        showStatus('Boosts appliqués : ' + applied.join(', '));
-      } else {
-        showStatus('Aucun boost actif – ajoute des prefs !');
-      }
-
-      // Liste sites (on garde multi pour l'instant, mais focus Pornhub si geo-block)
       const sites = [
-        { name: "Pornhub (principal)", url: `https://www.pornhub.com/video/search?search=${encodeURIComponent(enhancedQuery)}` },
-        // Ajoute les autres si pop-ups OK, sinon commente
-        // { name: "XVideos", url: `https://www.xvideos.com/?k=${encodeURIComponent(enhancedQuery)}` },
-        // ... etc.
+        {name: "ThisVid", url: `https://thisvid.com/search/?q=${encodeURIComponent(enhanced)}`},
+        {name: "DarknessPorn", url: `https://darknessporn.com/search/${encodeURIComponent(enhanced)}/`}
       ];
 
-      if (confirm(`Ouvrir recherche boostée (${sites.length} sites) ?`)) {
-        sites.forEach(site => {
-          window.open(site.url, '_blank');
-        });
+      if (confirm(`Ouvrir sur ${sites.length} sites ?`)) {
+        sites.forEach(s => window.open(s.url, '_blank'));
+        document.getElementById('status').textContent = 'Boosts appliqués !';
       }
     }
 
-    // Init
     updateList();
   </script>
 
